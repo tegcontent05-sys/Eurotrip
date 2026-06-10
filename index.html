@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eurogrip Europe Tour - Team Command Center</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: #f5f5f0;
+            margin: 0;
+            padding: 20px;
+            color: #2c2c2a;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 500;
+        }
+        .header p {
+            margin: 4px 0 0 0;
+            color: #888;
+            font-size: 14px;
+        }
+        .panel {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            border: 0.5px solid #d3d1c7;
+            margin-bottom: 16px;
+        }
+        .panel h3 {
+            margin: 0 0 12px 0;
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .filter-btn {
+            padding: 8px 16px;
+            font-size: 13px;
+            border: 0.5px solid #d3d1c7;
+            background: transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-btn.active {
+            background: #185FA5;
+            color: white;
+            border-color: #185FA5;
+        }
+        .filter-btn.active.rentao {
+            background: #BA7517;
+            border-color: #BA7517;
+        }
+        .events-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
+        }
+        .event-card {
+            padding: 12px;
+            border: 0.5px solid #d3d1c7;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .event-card.silvio {
+            background: rgba(24, 95, 165, 0.05);
+            border-color: #185FA5;
+        }
+        .event-card.rentao {
+            background: rgba(186, 117, 23, 0.05);
+            border-color: #BA7517;
+        }
+        .event-card:hover {
+            border-color: #888;
+        }
+        .event-date {
+            font-size: 12px;
+            font-weight: 500;
+            color: #888;
+            margin-bottom: 6px;
+        }
+        .event-city {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .event-type {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .event-venue {
+            font-size: 12px;
+            padding: 6px;
+            background: #f5f5f0;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            min-height: 20px;
+        }
+        .event-venue.empty {
+            color: #ccc;
+        }
+        .event-edit {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 0.5px solid #d3d1c7;
+            display: none;
+        }
+        .event-edit.show {
+            display: block;
+        }
+        .event-edit input {
+            width: 100%;
+            padding: 6px 8px;
+            font-size: 12px;
+            border: 0.5px solid #d3d1c7;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            font-family: inherit;
+        }
+        .teams-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .team-card {
+            background: white;
+            border: 0.5px solid #d3d1c7;
+            border-radius: 8px;
+            padding: 0;
+            overflow: hidden;
+        }
+        .team-header {
+            background: #f1efe8;
+            padding: 12px;
+            border-bottom: 0.5px solid #d3d1c7;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .team-tasks {
+            padding: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .task-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 8px;
+            background: #f5f5f0;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .task-item:hover {
+            background: #ede8df;
+        }
+        .task-item.completed {
+            opacity: 0.5;
+        }
+        .task-checkbox {
+            width: 16px;
+            height: 16px;
+            border: 0.5px solid #d3d1c7;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: white;
+            font-weight: bold;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .task-checkbox.checked {
+            background: #3b6d11;
+            border-color: #3b6d11;
+        }
+        .task-text {
+            font-size: 12px;
+            flex: 1;
+            word-break: break-word;
+        }
+        .task-delete {
+            font-size: 12px;
+            color: #888;
+            cursor: pointer;
+            padding: 4px;
+        }
+        .task-delete:hover {
+            color: #a32d2d;
+        }
+        .add-task {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .add-task input {
+            flex: 1;
+            padding: 6px 8px;
+            font-size: 12px;
+            border: 0.5px solid #d3d1c7;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        .add-task button {
+            padding: 6px 12px;
+            font-size: 12px;
+            border: 0.5px solid #d3d1c7;
+            background: #f5f5f0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .add-task button:hover {
+            background: #ede8df;
+        }
+        .status-indicator {
+            font-size: 11px;
+            color: #3b6d11;
+            text-align: center;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 0.5px solid #d3d1c7;
+        }
+        .status-indicator.loading {
+            color: #BA7517;
+        }
+        .status-indicator.error {
+            color: #a32d2d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Eurogrip Europe Tour - Team Command Center</h1>
+            <p>22 June – 2 July 2026 | Real-time collaborative tracker</p>
+        </div>
+
+        <!-- Events Section -->
+        <div class="panel">
+            <h3>Events</h3>
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="setEventFilter('all')">All</button>
+                <button class="filter-btn" onclick="setEventFilter('Silvio')">Silvio</button>
+                <button class="filter-btn rentao" onclick="setEventFilter('Rentao')">Rentao</button>
+            </div>
+            <div class="events-grid" id="events-grid"></div>
+        </div>
+
+        <!-- Team Tasks Section -->
+        <div class="panel">
+            <h3>Team Tasks</h3>
+            <div class="teams-grid" id="teams-grid"></div>
+            <div class="status-indicator" id="status">Connecting to Firebase...</div>
+        </div>
+    </div>
+
+    <script>
+        const TEAM_MEMBERS = ['Saurabh', 'Anand', 'Chandrika', 'Prashant', 'Kannan', 'Kavitha', 'Shreya', 'Sanket', 'Sanjay', 'Aswathy'];
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyATDlSAso_v4WFreXueNyd-VKARi8p4QTc",
+            authDomain: "eurogrip-tour.firebaseapp.com",
+            databaseURL: "https://eurogrip-tour-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "eurogrip-tour",
+            storageBucket: "eurogrip-tour.firebasestorage.app",
+            messagingSenderId: "35936399543",
+            appId: "1:35936399543:web:be23bb53ecfd66114b1d32"
+        };
+
+        let db = null;
+        let data = {
+            events: [],
+            tasks: {},
+            eventFilter: 'all'
+        };
+
+        TEAM_MEMBERS.forEach(member => {
+            data.tasks[member] = [];
+        });
+
+        function initializeEvents() {
+            data.events = [
+                { id: 'r1', date: '22 Jun', guest: 'Rentao', city: 'Delhi', type: 'Retailer Meet', venue: '', lead: 'Kannan' },
+                { id: 'r2', date: '23 Jun', guest: 'Rentao', city: 'Hathras', type: 'Dealer Meet', venue: '', lead: 'Chandrika' },
+                { id: 'r3', date: '24 Jun', guest: 'Rentao', city: 'Noida', type: 'Dealer Meet', venue: '', lead: 'Chandrika' },
+                { id: 'r4', date: '25 Jun', guest: 'Rentao', city: 'Faridabad', type: 'Dealer Meet', venue: '', lead: 'Chandrika' },
+                { id: 'r5', date: '26 Jun', guest: 'Rentao', city: 'Kolkata', type: 'Retailer Meet', venue: '', lead: 'Sanket' },
+                { id: 'r6', date: '27 Jun', guest: 'Rentao', city: 'Bangalore', type: 'Retailer Meet', venue: '', lead: 'Shreya' },
+                { id: 's1', date: '23 Jun', guest: 'Silvio', city: 'Hyderabad', type: 'Distributor Meet', venue: '', lead: 'Anand' },
+                { id: 's2', date: '24 Jun', guest: 'Silvio', city: 'Hyderabad', type: 'Retailer Meet + Inauguration', venue: '', lead: 'Anand' },
+                { id: 's3', date: '25 Jun', guest: 'Silvio', city: 'Raipur', type: 'Retailer Meet', venue: '', lead: 'Sanjay' },
+                { id: 's4', date: '26 Jun', guest: 'Silvio', city: 'Indore', type: 'Retailer Meet + Podcast', venue: '', lead: 'Prashant' },
+                { id: 's5', date: '27 Jun', guest: 'Silvio', city: 'Mumbai', type: 'Distributor Meet', venue: '', lead: 'Saurabh' },
+                { id: 's6', date: '2 Jul', guest: 'Silvio', city: 'Madurai', type: 'Retailer Meet + Tech', venue: '', lead: 'Aswathy' },
+            ];
+        }
+
+        function initFirebase() {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.database();
+            loadDataFromFirebase();
+        }
+
+        function loadDataFromFirebase() {
+            db.ref('events').on('value', (snapshot) => {
+                if (snapshot.val()) {
+                    data.events = snapshot.val();
+                } else {
+                    db.ref('events').set(data.events);
+                }
+                renderEvents();
+            });
+
+            db.ref('tasks').on('value', (snapshot) => {
+                if (snapshot.val()) {
+                    data.tasks = snapshot.val();
+                } else {
+                    db.ref('tasks').set(data.tasks);
+                }
+                renderTeams();
+            });
+
+            updateStatus('✓ Connected to Firebase', false);
+        }
+
+        function saveData() {
+            updateStatus('Saving...', true);
+            db.ref('events').set(data.events);
+            db.ref('tasks').set(data.tasks);
+            setTimeout(() => updateStatus('✓ Saved', false), 500);
+        }
+
+        function updateStatus(msg, isLoading) {
+            const status = document.getElementById('status');
+            status.textContent = msg;
+            status.className = isLoading ? 'status-indicator loading' : 'status-indicator';
+        }
+
+        function setEventFilter(filter) {
+            data.eventFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderEvents();
+        }
+
+        function updateEventVenue(id, venue) {
+            const evt = data.events.find(e => e.id === id);
+            if (evt) {
+                evt.venue = venue;
+                saveData();
+            }
+        }
+
+        function toggleEventEdit(id) {
+            const card = document.getElementById(`event-${id}`);
+            if (card) {
+                const editDiv = card.querySelector('.event-edit');
+                editDiv.classList.toggle('show');
+            }
+        }
+
+        function addTask(member) {
+            const input = document.getElementById(`task-input-${member}`);
+            const taskText = input.value.trim();
+            
+            if (taskText) {
+                if (!data.tasks[member]) {
+                    data.tasks[member] = [];
+                }
+                data.tasks[member].push({
+                    id: Date.now(),
+                    text: taskText,
+                    completed: false
+                });
+                input.value = '';
+                saveData();
+                renderTeams();
+            }
+        }
+
+        function toggleTask(member, taskId) {
+            if (data.tasks[member]) {
+                const task = data.tasks[member].find(t => t.id === taskId);
+                if (task) {
+                    task.completed = !task.completed;
+                    saveData();
+                    renderTeams();
+                }
+            }
+        }
+
+        function deleteTask(member, taskId) {
+            if (data.tasks[member]) {
+                data.tasks[member] = data.tasks[member].filter(t => t.id !== taskId);
+                saveData();
+                renderTeams();
+            }
+        }
+
+        function renderEvents() {
+            const filteredEvents = data.eventFilter === 'all' ? 
+                data.events : 
+                data.events.filter(e => e.guest === data.eventFilter);
+
+            let html = '';
+            for (const evt of filteredEvents) {
+                const guestClass = evt.guest === 'Silvio' ? 'silvio' : 'rentao';
+                const venueDisplay = evt.venue ? evt.venue : '<span class="empty">No venue yet</span>';
+
+                html += `
+                    <div class="event-card ${guestClass}" id="event-${evt.id}" onclick="toggleEventEdit('${evt.id}')">
+                        <div class="event-date">${evt.date} • ${evt.guest}</div>
+                        <div class="event-city">${evt.city}</div>
+                        <div class="event-type">${evt.type}</div>
+                        <div class="event-venue">${venueDisplay}</div>
+                        <div style="font-size: 11px; color: #888;">Lead: ${evt.lead}</div>
+                        <div class="event-edit">
+                            <input type="text" placeholder="Enter venue address..." value="${evt.venue}" onchange="updateEventVenue('${evt.id}', this.value)">
+                            <div style="font-size: 11px; color: #888;">Click outside to close</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('events-grid').innerHTML = html;
+        }
+
+        function renderTeams() {
+            let html = '';
+            
+            for (const member of TEAM_MEMBERS) {
+                const tasks = data.tasks[member] || [];
+                const completedCount = tasks.filter(t => t.completed).length;
+
+                let tasksHtml = '';
+                for (const task of tasks) {
+                    const completedClass = task.completed ? 'completed' : '';
+                    tasksHtml += `
+                        <div class="task-item ${completedClass}" onclick="toggleTask('${member}', ${task.id})">
+                            <div class="task-checkbox ${task.completed ? 'checked' : ''}">
+                                ${task.completed ? '✓' : ''}
+                            </div>
+                            <div class="task-text">${task.text}</div>
+                            <div class="task-delete" onclick="event.stopPropagation(); deleteTask('${member}', ${task.id})">×</div>
+                        </div>
+                    `;
+                }
+
+                html += `
+                    <div class="team-card">
+                        <div class="team-header">
+                            ${member} <span style="color: #888; font-weight: normal; font-size: 12px;">(${completedCount}/${tasks.length})</span>
+                        </div>
+                        <div class="team-tasks">
+                            ${tasksHtml || '<div style="font-size: 12px; color: #ccc; padding: 12px; text-align: center;">No tasks yet</div>'}
+                            <div class="add-task">
+                                <input type="text" id="task-input-${member}" placeholder="Add task..." onkeypress="if(event.key==='Enter') addTask('${member}')">
+                                <button onclick="addTask('${member}')">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('teams-grid').innerHTML = html;
+        }
+
+        function init() {
+            initializeEvents();
+            renderEvents();
+            renderTeams();
+            initFirebase();
+        }
+
+        init();
+    </script>
+</body>
+</html>
